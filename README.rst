@@ -14,7 +14,7 @@ Science Platform authentication for IDAC users
 DMTN-253
 ========
 
-International Data Access Centers may wish to limit access to users with Rubin data rights, and may wish to make requests of the US Data Access Center on behalf of the user. They may or may not be using the Rubin Science Platform software and should not be required to maintain a separate database of users with data rights. This tech note describes a strategy for satisfying this use case by making the USDAC an OpenID Connect authorization provider for IDACs.
+Describes anticipated authentication and authorization requirements for International Data Access Centers (IDACs) and proposes a design using OpenID Connect to meet those requirements.
 
 **Links:**
 
