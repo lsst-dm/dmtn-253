@@ -6,7 +6,7 @@ Abstract
 International Data Access Centers (IDACs) are required to enforce the Rubin data rights policy both for any Rubin data that is served to their users, and for any Rubin Data Facilities services they might invoke on behalf of their users.
 IDACs are not required to deploy instances of any Rubin software, and can choose how to implement enforcement of the Rubin data rights policies. 
 However, given the large number of people entitled to Rubin data and the challenges in maintaining an accurate roll of authorised users across identity domains, IDACs might find it helpful to delegate authentication and authorisation of their Rubin data users to the  Rubin Science Platform which (by requirement and implementation) has the capability of applying these controls for its public science deployment.
-This tech note describes a strategy for satisfying this use case by making the USDAC an OpenID Connect authorization provider for IDACs.
+This tech note describes a strategy for satisfying this use case by extending the RSP authentication and authorisation service to allow IDACs to use OpenID Connect (a leading industry standard  for identity interoperability with wide implementation support) to "phone home" to the Rubin USDAC for data rights verification. 
 
 .. note::
 
