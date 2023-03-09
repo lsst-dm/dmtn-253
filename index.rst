@@ -3,7 +3,7 @@
 Abstract
 ========
 
-International Data Access Centers (IDACs) may wish to limit access to users with Rubin data rights, and may wish to make requests of the US Data Access Center (USDAC) on behalf of the user.
+International Data Access Centers (IDACs) are required to enforce the Rubin data rights policy both for any Rubin data that is served to their users, and for any Rubin Data Facilities services they might invoke on behalf of their users.
 They may or may not be using the Rubin Science Platform software and should not be required to maintain a separate database of users with data rights.
 This tech note describes a strategy for satisfying this use case by making the USDAC an OpenID Connect authorization provider for IDACs.
 
