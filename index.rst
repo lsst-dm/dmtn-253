@@ -34,7 +34,7 @@ To allow rate limiting and usage tracking to be as accurate as possible, that au
 Given the authentication and authorization model described in :dmtn:`234`, this means the IDAC needs some mechanism to obtain an authentication token on behalf of the user, which it can then use for subsequent requests.
 This token will then be used to authenticate requests to a specific Data Access Center or Data Facilty.
 
-Proposed solution
+Planned Implementation
 =================
 
 Verifying data rights
