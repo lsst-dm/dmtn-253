@@ -114,7 +114,8 @@ Possible approaches to communicating this information to an IDAC include:
   The drawback of this approach is that it is awkward to put this type of configuration at the Gafaelfawr layer, since it normally only cares about group memberships and scopes derived from those group memberships.
   The advantage is that this would clearly communicate precisely the information of interest to the IDAC.
 
-When implementing this proposal, we will need to choose an approach and document that in the instructions for IDACs.
+When implementing this proposal, we will need to choose an approach and document that in the instructions for IDACs. 
+Note that if the requirement is for IDACs to apply data release-level controls (not just whether a user has data rights *now* but whether they used to have data rights for a particular release) the first option is eliminated. 
 
 .. _idac-tokens:
 
