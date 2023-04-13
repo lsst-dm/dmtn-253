@@ -66,6 +66,10 @@ Using those authentication credentials, the IDAC could verify the user's data ri
    The IDAC will need to retrieve metadata for the user and check that user's scopes and group membership to determine their current access rights.
    See :ref:`metadata` for additional details that will need to be designed.
 
+This approach requires the user to authenticate to the USDAC.
+That, in turn, means that this authentication process will fail if the user does not have access to the USDAC for any reason, including suspension of access due to violations of the terms of use.
+Users who are not permitted to authenticate to the USDAC but should still have access to an IDAC would need to be handled through some other (probably manual) process.
+
 Obtaining a delegated token
 ---------------------------
 
