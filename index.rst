@@ -101,12 +101,12 @@ Possible approaches to communicating this information to an IDAC include:
 
 - Put the user's scopes (the same ones used internally by the USDAC) into the issued identity token.
   The IDAC can then retrieve the scopes from the identity token and look for a scope that indicates that the user has data rights.
-  The drawback of this approach is that user scopes are more granular than "has data rights" or "does not have data rights" (see :dmtn:`235`), so there would need to be clear documentation for what IDACs should look for.
-  Also, the Science Platform scopes will, by design, only indicate whether the user has access to any Data Release (not necessarily the current one).
+  The drawback of this approach is that scopes only convey whether the user has access to any data release (including historical ones), not which data releases they have access to or whether they have access to the most recent data release.
   More granular information is only available in group membership.
+  This option is therefore eliminated if IDACs have a requirement to determine whether a user has access to the current or a specific data release.
 
 - Put the user's USDAC groups into the issued identity token.
-  This is cleaner in that there will be groups specifically for data access rights (and separated by Data Release when that is relevant).
+  Group membership will provide granular information about which data releases the user has access to.
   However, there is no standard JWT field for group membership, and this would also expose a lot of other group details that is likely not of interest to IDACs and could change at any time.
 
 - Determine, at the USDAC Gafaelfawr side, whether the user has data rights (and to which Data Releases if applicable) and synthesize a token claim that says this specifically.
