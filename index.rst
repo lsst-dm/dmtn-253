@@ -1,14 +1,15 @@
-:tocdepth: 1
+##############################################
+Science Platform authentication for IDAC users
+##############################################
 
-Abstract
-========
+.. abstract::
 
-International Data Access Centers (IDACs) are required to enforce the Rubin data rights policy for any Rubin data that is served to their users, and for any Rubin Data Facilities services they might invoke on behalf of their users.
-IDACs are not required to deploy instances of any Rubin software, and can choose how to implement enforcement of the Rubin data rights policies. 
-However, given the large number of people entitled to Rubin data and the difficulty of maintaining an accurate roll across identity domains, IDACs may find it helpful to delegate authentication and authorization of their Rubin data users to the Rubin Science Platform, which (by requirement and implementation) is capable of applying these controls for its public science deployment.
+   International Data Access Centers (IDACs) are required to enforce the Rubin data rights policy for any Rubin data that is served to their users, and for any Rubin Data Facilities services they might invoke on behalf of their users.
+   IDACs are not required to deploy instances of any Rubin software, and can choose how to implement enforcement of the Rubin data rights policies. 
+   However, given the large number of people entitled to Rubin data and the difficulty of maintaining an accurate roll across identity domains, IDACs may find it helpful to delegate authentication and authorization of their Rubin data users to the Rubin Science Platform, which (by requirement and implementation) is capable of applying these controls for its public science deployment.
 
-This tech note describes a strategy for satisfying this use case by extending the RSP authentication and authorization service to allow IDACs to use OpenID Connect to "phone home" to the Rubin USDAC for data rights verification.
-`OpenID Connect`_ is a widely-supported industry standard for authentication and identity.
+   This tech note describes a strategy for satisfying this use case by extending the RSP authentication and authorization service to allow IDACs to use OpenID Connect to "phone home" to the Rubin USDAC for data rights verification.
+   `OpenID Connect`_ is a widely-supported industry standard for authentication and identity.
 
 .. _OpenID Connect: https://openid.net/connect/
 
