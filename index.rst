@@ -24,7 +24,7 @@ Science Platform authentication for IDAC users
 Problem statement
 =================
 
-One of the responsibilities of the USDAC is to provide an identity management system that tracks all registered Rubin data rights holders, vets new requests for access, and uses that system to authorize access to the instance of the Rubin Science Platform running at he USDAC.
+One of the responsibilities of the United States Data Access Center (USDAC) is to provide an identity management system that tracks all registered Rubin data rights holders, vets new requests for access, and uses that system to authorize access to the instance of the Rubin Science Platform running at he USDAC.
 The design for this identity management system is described in :dmtn:`234`.
 
 IDACs may provide additional resources to Rubin data rights holders.
@@ -36,14 +36,15 @@ As part of providing additional resources or running local services, IDACs may n
 To maintain the restrictions on data rights, and to protect against excessive use, those requests should be authenticated.
 To allow rate limiting and usage tracking to be as accurate as possible, that authentication should identify both the user (the person holding Rubin data rights on behalf of whom the request was made) and the IDAC making the request on behalf of the user.
 
-Given the authentication and authorization model described in :dmtn:`234`, this means the IDAC needs some mechanism to obtain an authentication token on behalf of the user, which it can then use for subsequent requests.
-This token will then be used to authenticate requests to a specific Data Access Center or Data Facilty.
+Given the authentication and authorization model described in :dmtn:`234`, this means the IDAC needs some mechanism to obtain authentication and possibly access tokens for the user.
+The authentication token will provide the IDAC with information about the user's identity and data rights.
+The access tokens, if provided, will allow the IDAC to make requests on behalf of the user to a specific Data Access Center or Data Facility.
 
-Planned implementation
-======================
+User authentication
+===================
 
-Verifying data rights
----------------------
+Background
+----------
 
 The USDAC must verify data rights for any attempted access.
 It does this by maintaining an identity management system with a record of all users with verified data rights, including a mechanism for adding new users and for removing users when they no longer have data rights.
@@ -52,57 +53,154 @@ The component that enforces this verification and interacts with the identity ma
 .. _Gafaelfawr: https://gafaelfawr.lsst.io/
 
 Gafaelfawr can also act as an `OpenID Connect`_ provider.
-This support was originally added to provide authentication to third-party software running inside the Rubin Science Platform that uses OpenID Connect for authentication.
-However, OpenID Connect services need not be restricted to applications within the same Science Platform instance.
+This is a widely implemented standard for delegating authentication to a third party, and will be used by IDACs that wish to use the USDAC to authenticate users.
 
-In this proposed design, an IDAC that wanted to verify whether a user had Rubin data rights would do so by initiating an OpenID Connect authentication, using the USDAC as the authentication provider.
-The user would be sent to the USDAC to authenticate using whatever mechanisms they have registered with its identity provider.
-After successful authentication, the user would be returned to the IDAC with authentication credentials.
-Using those authentication credentials, the IDAC could verify the user's data rights and obtain additional metadata about the user, such as full name, email address, and group membership.
-(See :dmtn:`225` for a list of the metadata the USDAC will maintain.)
+OpenID Connect uses the following terms in very specific ways:
+
+claim
+    An individual attribute in a JWT (see :rfc:`7519`), such as an ID token.
+
+client
+    The application that wants to use an OpenID Connect server to authenticate a user.
+    In the context of this tech note, this is an IDAC.
+    The client is *not* the user being authenticated; it is another service that is delegating authentication to the OpenID Connect server.
+    The client is more formally called the Relying Party (RP).
+
+scope
+    A requested scope of access to the user's data.
+    This is unfortunately the same term that is used for the permissions granted to a Gafaelfawr token used internally by the Rubin Science Platform (see :dmtn:`235`).
+    OpenID scopes are unrelated to Gafaelfawr token scopes and use a different set of valid values.
+
+server
+    The OpenID Connect server that authenticates the user.
+    In the case of Gafaelfawr, this is normally done by delegating the authentication to yet another OpenID Connect server, although IDACs do not need to be aware of this.
+    The server is more formally called the OpenID Provider (OP).
+
+user
+    The person or application being authenticated.
+    In the case of IDAC authentication, this is always a human user, generally using a web browser.
+
+Registering an IDAC
+-------------------
+
+Broadly speaking, there are two ways registration with an OpenID Connect server can work: dynamic registration of any client that wants to use it, or pre-registration that requires a client to be registered before it can authenticate users.
+Dynamic registration requires asking the authenticating user for their permission to release information about them to the client.
+
+Since we only want to allow known clients to use Rubin for authentication, will only release data about users to known services, and want the authentication flow to be uniform for any Rubin-affiliated Data Access Center, we will require pre-registration of all clients.
+
+Concretely, this means that we only support the `Authentication Code Flow`_ and only `confidential clients <https://datatracker.ietf.org/doc/html/rfc6749#section-2.1>`__ are supported.
+
+.. _Authentication Code Flow: https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
+
+Any IDAC that wants to delegate authentication and get data rights information from the USDAC must agree in advance with the USDAC on the following information:
+
+``client_id``
+    A unique identifier for this IDAC.
+
+``client_secret``
+    A randomly-generated key that will be used by the IDAC to authenticate to the USDAC during the Token Request step of an OpenID Connect 1.0 authentication.
+
+``redirect_uri``
+    The URL to which the user will be redirected following a successful authentication for this IDAC.
+    This must exactly match (apart from query parameters) the URL provided by the IDAC in the ``redirect_uri`` request parameter when it initiates authentication and the ``redirect_uri`` POST parameter in the Token Request.
+
+Authenticating a user
+---------------------
+
+To authenticate a user, an IDAC will follow the normal OpenID Connect 1.0 `Authentication Code Flow`_.
+The standard URL ``/.well-known/openid-configuration`` at the USDAC can be used to get the relevant URLs and other OpenID Connect configuration.
+See the `OpenID Connect Discovery 1.0`_ standard for details about what that URL will return.
+
+.. _OpenID Connect Discovery 1.0: https://openid.net/specs/openid-connect-discovery-1_0.html
+
+The USDAC OpenID Connect server will support the following scopes:
+
+``openid``
+    Required, per the OpenID Connect specification.
+    The ``sub`` claim will always be set to the user's username at the USDAC.
+    IDACs do not have to use the same username for the user, but doing so may be convenient and less confusing.
+
+``profile``
+    Adds the ``preferred_username`` claim, with the same value as ``sub``, and, if this information is available, the ``name`` claim.
+    By design, we do not support attempting to break the name into components such as given name or family name.
+    This transformation is only meaningful in certain cultures.
+
+``email``
+    Adds the ``email`` claim if the user's email address is known.
+
+``rubin``
+    Adds the ``data_rights`` claim with a space-separated list of data releases the user has access to, if there are any.
+
+The expiration time of the ID token will be inherited from the expiration time of the underlying user credentials used for authentication.
+It will therefore be capped at the maximum session token lifetime for a user of the USDAC and may be much shorter if the user has not authenticated recently.
+
+.. note::
+
+   The OpenID Connect ``max_age`` parameter is not currently supported, but support could be added if there is a need for IDACs to ensure that the user authentication is not too stale (and thus the expiration of the ID token is not too close).
+
+Verifying data rights
+---------------------
+
+To verify a user has data rights, the IDAC **must** request the ``rubin`` scope during authentication and inspect the ``data_rights`` claim of the resulting ID token to see if it contains the relevant data release.
+Alternately, the IDAC can present the access token obtained via the Token Request to the Userinfo Endpoint, which will return the same information in the ``data_rights`` key.
 
 .. warning::
 
    The mere ability to authenticate does not guarantee that a user has data rights.
-   The IDAC will need to retrieve metadata for the user and check that user's scopes and group membership to determine their current access rights.
-   See :ref:`metadata` for additional details that will need to be designed.
+   Users with no data rights or with access only to old data releases will still be able to successfully authenticate.
+   An IDAC **must** verify user data rights before granting access to a restricted data set.
 
-This approach requires the user to authenticate to the USDAC.
-That, in turn, means that this authentication process will fail if the user does not have access to the USDAC for any reason, including suspension of access due to violations of the terms of use.
-Users who are not permitted to authenticate to the USDAC but should still have access to an IDAC would need to be handled through some other (probably manual) process.
+Delegated tokens
+================
 
-Obtaining a delegated token
----------------------------
+In the initial implementation, delegated access by IDACs to USDAC resources will not be allowed.
+The provided access token will only have access to the OpenID Connect Userinfo endpoint.
 
-The authentication system described in :dmtn:`234` has a mechanism for obtaining delegated tokens on behalf of a user.
-The purpose of these tokens is to allow some service accessed by the user to make further requests on behalf of that user to other services.
-(For example, the Portal Aspect may need to make TAP queries, and those queries should be done as the user so that appropriate access restrictions can be applied.)
+This section describes how delegated access tokens could be implemented in the future, should there be a need.
 
-The case of the IDAC making subsequent requests on behalf of the user to the USDAC is similar, except that the requests would originate from outside the Science Platform.
+Delegated token format
+----------------------
 
-OpenID Connect (via OAuth 2.0, see :rfc:`6749`) has a mechanism to return an access token in addition to the required ID token.
-That access token is intended for precisely this purpose: making subsequent requests on behalf of the user.
+The OpenID Connect flow provides up to three tokens to the client: the ID token, which must be a JWT (:rfc:`7519`) and which is discussed above; the access token, which must at least have access to the Userinfo endpoint; and an optional refresh token.
+This proposed implementation does not support refresh tokens.
 
-Unlike the ID token, which is required to be a JWT (see :rfc:`7519`), the access token can be any OAuth 2.0 bearer token.
-Gafaelfawr can therefore return one of its normal bearer tokens to use for subsequent requests, and associate the identity of the IDAC (which is provided to Gafaelfawr as part of the OpenID Connect authentication flow) with that token.
-Subsequent internal tokens can be generated from that token following the normal token usage pattern described in :dmtn:`234`.
+In the OpenID Connect standard, the access token need not be a JWT and may be an opaque token.
+In this implementation, it will indeed be an opaque token rather than a JWT for all of the `reasons discussed in SQR-069 <https://sqr-069.lsst.io/#token-format>`__.
+
+OpenID Connect access tokens will have a new internal Gafaelfawr token type, ``openid``, which is similar to the existing ``internal`` token type but indicates that the token was returned as an OpenID Connect access token.
+These tokens will have a new database field, ``client``, which holds the client ID of the OpenID Connect client to which they were issued.
+This field will be returned by the Gafaelfawr token-info endpoint.
+To support rate limiting, this field will likely also need to be added to the data stored in Redis.
+
+Delegated tokens of this type will by default have no Gafaelfawr scopes, which means that they can only be used to access user and token information endpoints.
+If delegated tokens should have access to some services, there are two possible ways we could implement that:
+
+#. Create additional non-standard OpenID Connect scopes that request access token scopes.
+
+#. Configure OpenID Connect clients, during registration, with a set of delegated access scopes, and add those token scopes to every access token created for that OpenID Connect client.
+
+We will defer deciding which approach to implement until we have a use case for delegated access.
+
+Obtaining and using a delegated token
+-------------------------------------
+
+The delegated token will be returned as the access token from the Token Response as part of the OpenID Connect authentication flow.
+
+This token is a bearer authentication token (see :rfc:`6750`).
+It must be used by putting it in the ``Authorization`` header of a request with a credential type of ``bearer``.
 
 Gafaelfawr's rate limiting support (see :sqr:`073`) should be enhanced to allow setting rate limits on an entire IDAC as well as on individual users, allowing rejection of requests from an IDAC on behalf of a user without affecting that user's other accesses.
+This will require adding the ``client`` field to the data stored in Redis so that it can be used for rate limiting decisions.
 
-See :ref:`idac-tokens` for a few implementation questions about this approach.
-
-Implementation details
-======================
+Design discussion
+=================
 
 .. _metadata:
 
 User metadata
 -------------
 
-Currently, the Gafaelfawr OpenID Connect provider is very simple and does not provide all of the metadata an IDAC would need.
-Specifically, it does not include either scopes or group membership, and therefore doesn't provide the necessary information to determine whether the user has data rights.
-
-Possible approaches to communicating this information to an IDAC include:
+We considered the following approaches for communicating data rights information to IDACs:
 
 - Put the user's scopes (the same ones used internally by the USDAC) into the issued identity token.
   The IDAC can then retrieve the scopes from the identity token and look for a scope that indicates that the user has data rights.
@@ -119,15 +217,12 @@ Possible approaches to communicating this information to an IDAC include:
   The drawback of this approach is that it is awkward to put this type of configuration at the Gafaelfawr layer, since it normally only cares about group memberships and scopes derived from those group memberships.
   The advantage is that this would clearly communicate precisely the information of interest to the IDAC.
 
-When implementing this proposal, we will need to choose an approach and document that in the instructions for IDACs.
+We picked the third option, despite the awkwardness and Rubin-specific scopes, since it provided the clearest communication of the necessary information without including extraneous details that could be used incorrectly.
 
-.. _idac-tokens:
+Access token format
+-------------------
 
-Access tokens for IDACs
------------------------
-
-We have to decide what form the access token returned to the IDAC in the OpenID Connect token response should take.
-There are a few possibilities:
+We considered the following options for the format of the access token:
 
 - Provide a JWT token that's usable in the same places a normal Gafaelfawr opaque token is used.
   While this is what OpenID Connect flows normally do, it's not required by the standard and many of the reasons why we `chose not to use JWTs <https://sqr-069.lsst.io/#token-format>`__ still apply.
@@ -141,9 +236,33 @@ There are a few possibilities:
   This has the advantage of unambiguously identifying this token as one delegated outside the Science Platform to an IDAC, but it adds additional complexity that may not be necessary.
   It's not obvious what to call these tokens without using Rubin-specific terminology, which may be a sign that this is not a generalizable authentication concept and therefore shouldn't be represented at the protocol level like this.
 
-Currently, Gafaelfawr does not use refresh tokens, in part because the tokens are all validated by the same service that issues the tokens, so there is no need to worry about validation by a service that does not realize the token has been invalidated.
-This will remain true for IDAC access tokens as long as the JWT approach is not chosen.
-However, we should still revisit the decision not to use refresh tokens to ensure nothing about the security model warrants them.
+We picked the third option and decided to call them ``openid`` tokens, which seems like a reasonable generalization.
+When implemented, this will require Gafaelfawr database transitions, but the additional clarity seems worth the effort.
 
-It's not immediately obvious how long of a lifetime IDAC access tokens should have.
-This should be configurable so that we can change our minds.
+Future work
+===========
+
+OpenID protocol
+---------------
+
+Currently, the OpenID Connect server implemented by Gafaelfawr is very simple and not fully standards-compliant.
+It implements only the minimum functionality required for this design to work, and may not work properly with every OpenID Connect client implementation.
+
+Ideally, it should be enhanced over time to become a more full-featured implementation.
+Missing features of particular interest include:
+
+- Support the ``max_age`` parameter to the Authentication Request and reauthenticate the user if their authentication is too stale.
+  This would provide IDACs with some amount of control over the lifetime of the returned ID and access tokens, and the ability to force reauthentication for privileged operations.
+
+- Support the ``display``, ``prompt``, and ``id_token_hint`` parameters to the Authentication Request, which would allow probing of authentication state without forcing authentication.
+
+- Support the ``email_verified`` claim.
+  Gafaelfawr can be configured to know whether the email metadata for users has been verified.
+
+- Support ``POST`` to the login and userinfo endpoints for better standards compliance.
+
+Refresh tokens
+--------------
+
+Currently, Gafaelfawr does not use refresh tokens, in part because the tokens are all validated by the same service that issues the tokens, so there is no need to worry about validation by a service that does not realize the token has been invalidated.
+We should revisit the decision not to use refresh tokens to ensure nothing about the security model warrants them.
