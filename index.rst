@@ -88,9 +88,9 @@ Dynamic registration requires asking the authenticating user for their permissio
 
 Since we only want to allow known clients to use Rubin for authentication, will only release data about users to known services, and want the authentication flow to be uniform for any Rubin-affiliated Data Access Center, we will require pre-registration of all clients.
 
-Concretely, this means that we only support the `Authentication Code Flow`_ and only `confidential clients <https://datatracker.ietf.org/doc/html/rfc6749#section-2.1>`__ are supported.
+Concretely, this means that we only support the `Authorization Code Flow`_ and only `confidential clients <https://datatracker.ietf.org/doc/html/rfc6749#section-2.1>`__ are supported.
 
-.. _Authentication Code Flow: https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
+.. Authorization Code Flow: https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
 
 Any IDAC that wants to delegate authentication and get data rights information from the USDAC must agree in advance with the USDAC on the following information:
 
@@ -107,7 +107,7 @@ Any IDAC that wants to delegate authentication and get data rights information f
 Authenticating a user
 ---------------------
 
-To authenticate a user, an IDAC will follow the normal OpenID Connect 1.0 `Authentication Code Flow`_.
+To authenticate a user, an IDAC will follow the normal OpenID Connect 1.0 `Authorization Code Flow`_.
 The standard URL ``/.well-known/openid-configuration`` at the USDAC can be used to get the relevant URLs and other OpenID Connect configuration.
 See the `OpenID Connect Discovery 1.0`_ standard for details about what that URL will return.
 
