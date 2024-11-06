@@ -90,7 +90,7 @@ Since we only want to allow known clients to use Rubin for authentication, will 
 
 Concretely, this means that we only support the `Authorization Code Flow`_ and only `confidential clients <https://datatracker.ietf.org/doc/html/rfc6749#section-2.1>`__ are supported.
 
-.. Authorization Code Flow: https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
+.. _Authorization Code Flow: https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
 
 Any IDAC that wants to delegate authentication and get data rights information from the USDAC must agree in advance with the USDAC on the following information:
 
